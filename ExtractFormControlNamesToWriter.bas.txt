@@ -1,0 +1,58 @@
+Sub ExtractFormControlNamesToWriter
+    Dim oDrawDoc As Object
+    Dim oForms As Object
+    Dim oForm As Object
+    Dim oControl As Object
+    Dim oWriterDoc As Object
+    Dim oText As Object
+    Dim oCursor As Object
+    Dim sOutput As String
+    Dim i As Integer, j As Integer
+    Dim nameCount As Integer
+
+    ' Get current Draw document
+    oDrawDoc = ThisComponent
+    If Not oDrawDoc.supportsService("com.sun.star.drawing.DrawingDocument") Then
+        MsgBox "This macro must be run from a Draw document.", 48, "Error"
+        Exit Sub
+    End If
+
+    ' Access form collection
+    oForms = oDrawDoc.getDrawPages().getByIndex(0).getForms()
+    nameCount = 0
+    sOutput = "Extracted Form Control Names:" & Chr(10) & Chr(10)
+
+    ' Loop through forms and controls
+    For i = 0 To oForms.getCount() - 1
+        oForm = oForms.getByIndex(i)
+        For j = 0 To oForm.getCount() - 1
+            oControl = oForm.getByIndex(j)
+            If HasProperty(oControl, "Name") Then
+                sOutput = sOutput & oControl.Name & Chr(10)
+                nameCount = nameCount + 1
+            End If
+        Next j
+    Next i
+
+    ' Check if any names were found
+    If nameCount = 0 Then
+        MsgBox "No form control names were found.", 64, "Extraction Complete"
+        Exit Sub
+    End If
+
+    ' Create new Writer document
+    oWriterDoc = StarDesktop.loadComponentFromURL("private:factory/swriter", "_blank", 0, Array())
+    oText = oWriterDoc.getText()
+    oCursor = oText.createTextCursor()
+    oText.insertString(oCursor, sOutput, False)
+
+    ' Display summary prompt
+    MsgBox nameCount & " form control names extracted and written to Writer.", 64, "Extraction Complete"
+End Sub
+
+' Helper: check if a control has a given property
+Function HasProperty(oObj As Object, sProp As String) As Boolean
+    Dim oInfo As Object
+    oInfo = oObj.getPropertySetInfo()
+    HasProperty = oInfo.hasPropertyByName(sProp)
+End Function
